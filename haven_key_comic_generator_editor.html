@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haven Key Comic Generator & Editor</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html2canvas for High-Res Comic Page Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              yellow: '#FACC15',
+              yellowHover: '#EAB308',
+              dark: '#0F172A',
+              card: '#1E293B',
+              border: '#334155'
+            }
+          },
+          fontFamily: {
+            comic: ['Comic Neue', 'Comic Sans MS', 'cursive', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Comic Speech Bubbles Tail Styles */
+    .bubble-tail-bottom::after {
+      content: '';
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 14px 10px 0 10px;
+      border-style: solid;
+      border-color: var(--bubble-bg, #ffffff) transparent transparent transparent;
+    }
+    .bubble-tail-left::after {
+      content: '';
+      position: absolute;
+      left: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 10px 14px 10px 0;
+      border-style: solid;
+      border-color: transparent var(--bubble-bg, #ffffff) transparent transparent;
+    }
+    .bubble-tail-right::after {
+      content: '';
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 10px 0 10px 14px;
+      border-style: solid;
+      border-color: transparent transparent transparent var(--bubble-bg, #ffffff);
+    }
+    .bubble-tail-top::after {
+      content: '';
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 0 10px 14px 10px;
+      border-style: solid;
+      border-color: transparent transparent var(--bubble-bg, #ffffff) transparent;
+    }
+    .action-effect {
+      text-shadow: 3px 3px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 3px 0 #000, 3px 0 0 #000;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-hidden select-none bg-slate-950 text-slate-100">
+
+  <!-- TOP HEADER / NAVBAR -->
+  <header class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 z-20">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-lg bg-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-yellow-500/20">
+        HK
+      </div>
+      <div>
+        <h1 class="font-bold text-sm leading-none text-slate-100 flex items-center gap-2">
+          HAVEN KEY <span class="text-xs bg-yellow-400/10 text-yellow-400 px-2 py-0.5 rounded border border-yellow-400/30">Comic Studio AI</span>
+        </h1>
+        <p class="text-[10px] text-slate-400 mt-0.5">Dynamic AI Storyboard & Panel Generator</p>
+      </div>
+    </div>
+
+    <!-- Quick Controls & Actions -->
+    <div class="flex items-center space-x-2">
+      <button id="btn-load-template" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md font-medium transition flex items-center gap-1.5">
+        <i class="fa-solid font-bold fa-wand-magic-sparkles text-yellow-400"></i> Sample Story
+      </button>
+
+      <div class="h-4 w-[1px] bg-slate-800 mx-1"></div>
+
+      <button id="btn-export-json" title="Save Project File" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md font-medium transition flex items-center gap-1.5">
+        <i class="fa-solid fa-file-export"></i> Backup JSON
+      </button>
+      <button id="btn-import-json" title="Load Project File" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md font-medium transition flex items-center gap-1.5">
+        <i class="fa-solid fa-file-import"></i> Open JSON
+      </button>
+      <input type="file" id="input-import-file" accept=".json" class="hidden">
+
+      <button id="btn-export-png" class="px-4 py-1.5 text-xs bg-yellow-400 hover:bg-yellow-500 text-slate-950 font-bold rounded-md shadow-md transition flex items-center gap-1.5">
+        <i class="fa-solid fa-download"></i> Export High-Res PNG
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN THREE-COLUMN WORKSPACE -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- LEFT SIDEBAR: Panel Storyboard & Layout Manager -->
+    <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col z-10">
+      <!-- Layout Preset Selector -->
+      <div class="p-3 border-b border-slate-800">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Grid Layout Presets</label>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button data-layout="1x1" class="layout-btn p-2 rounded bg-slate-800 hover:bg-slate-700 text-xs flex flex-col items-center gap-1 text-slate-300 border border-slate-700 active">
+            <div class="w-5 h-5 bg-slate-600 rounded-sm"></div>
+            1 Panel
+          </button>
+          <button data-layout="strip" class="layout-btn p-2 rounded bg-slate-800 hover:bg-slate-700 text-xs flex flex-col items-center gap-1 text-slate-300 border border-slate-700">
+            <div class="w-5 h-5 flex flex-col gap-0.5">
+              <div class="bg-slate-600 h-1.5 rounded-xs"></div>
+              <div class="bg-slate-600 h-1.5 rounded-xs"></div>
+              <div class="bg-slate-600 h-1.5 rounded-xs"></div>
+            </div>
+            Strip
+          </button>
+          <button data-layout="2x2" class="layout-btn p-2 rounded bg-slate-800 hover:bg-slate-700 text-xs flex flex-col items-center gap-1 text-slate-300 border border-slate-700">
+            <div class="w-5 h-5 grid grid-cols-2 gap-0.5">
+              <div class="bg-slate-600 rounded-xs"></div>
+              <div class="bg-slate-600 rounded-xs"></div>
+              <div class="bg-slate-600 rounded-xs"></div>
+              <div class="bg-slate-600 rounded-xs"></div>
+            </div>
+            2 x 2
+          </button>
+          <button data-layout="dynamic" class="layout-btn p-2 rounded bg-slate-800 hover:bg-slate-700 text-xs flex flex-col items-center gap-1 text-slate-300 border border-slate-700">
+            <div class="w-5 h-5 flex flex-col gap-0.5">
+              <div class="bg-slate-600 h-2 rounded-xs"></div>
+              <div class="grid grid-cols-2 gap-0.5 h-3">
+                <div class="bg-slate-600 rounded-xs"></div>
+                <div class="bg-slate-600 rounded-xs"></div>
+              </div>
+            </div>
+            Feature
+          </button>
+        </div>
+      </div>
+
+      <!-- Panels List Header -->
+      <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Story Panels</span>
+        <button id="btn-add-panel" class="text-xs bg-slate-800 hover:bg-slate-700 text-yellow-400 font-semibold px-2 py-1 rounded border border-slate-700 flex items-center gap-1">
+          <i class="fa-solid fa-plus"></i> Add Panel
+        </button>
+      </div>
+
+      <!-- Storyboard List -->
+      <div id="panel-tree-list" class="flex-1 overflow-y-auto p-2 space-y-2">
+        <!-- Dynamic Panel Items Generated Here -->
+      </div>
+
+      <!-- Asset Library Accordion -->
+      <div class="border-t border-slate-800 p-3 bg-slate-900/50">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Overlay Assets</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button id="add-speech-bubble" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-center text-xs text-slate-200">
+            <i class="fa-solid fa-comment text-yellow-400 block mb-1"></i> Speech
+          </button>
+          <button id="add-thought-bubble" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-center text-xs text-slate-200">
+            <i class="fa-solid fa-cloud text-blue-400 block mb-1"></i> Thought
+          </button>
+          <button id="add-action-text" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-center text-xs text-slate-200">
+            <i class="fa-solid fa-bolt text-red-400 block mb-1"></i> FX Boom
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER CANVAS / LIVE COMIC PAGE PREVIEW -->
+    <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative">
+      <!-- Canvas Bar -->
+      <div class="h-10 bg-slate-900/50 border-b border-slate-800 px-4 flex items-center justify-between">
+        <div class="flex items-center space-x-2 text-xs text-slate-400">
+          <span>Active Panel: <strong id="active-panel-indicator" class="text-yellow-400">Panel 1</strong></span>
+          <span>•</span>
+          <span>Double-click text overlays to edit content</span>
+        </div>
+        <div class="flex items-center space-x-2 text-xs">
+          <button id="btn-zoom-out" class="p-1 hover:text-yellow-400"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <span id="zoom-level" class="text-slate-400 text-xs">100%</span>
+          <button id="btn-zoom-in" class="p-1 hover:text-yellow-400"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button id="btn-reset-zoom" class="px-2 py-0.5 bg-slate-800 rounded text-[11px] text-slate-300 hover:bg-slate-700">Fit</button>
+        </div>
+      </div>
+
+      <!-- Canvas Scroll Container -->
+      <div class="flex-1 overflow-auto p-8 flex justify-center items-start bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px]">
+        
+        <!-- COMIC PAGE PAPER CONTAINER (Target for html2canvas Export) -->
+        <div id="comic-page" class="w-[750px] min-h-[950px] bg-white p-6 shadow-2xl rounded-sm transition-transform duration-200 flex flex-col justify-between relative border border-slate-300" style="transform-origin: top center;">
+          
+          <!-- Comic Title Header (Optional styling) -->
+          <div class="mb-4 text-center border-b-2 border-black pb-2 flex justify-between items-end">
+            <h2 id="comic-title-display" class="text-2xl font-black tracking-wider uppercase text-black font-comic">HAVEN KEY CHRONICLES</h2>
+            <span class="text-xs font-bold text-slate-600 font-comic uppercase">ISSUE #1</span>
+          </div>
+
+          <!-- Dynamic Panel Grid Container -->
+          <div id="panels-grid" class="flex-1 grid gap-4 relative">
+            <!-- Panels injected dynamically -->
+          </div>
+
+          <!-- Comic Footer -->
+          <div class="mt-4 border-t-2 border-black pt-1 flex justify-between items-center text-[10px] text-slate-600 font-bold uppercase font-comic">
+            <span>Created with Haven Key AI Studio</span>
+            <span id="page-number-display">PAGE 1</span>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR: AI Prompting, Style Presets & Bubble Controls -->
+    <aside class="w-80 bg-slate-900 border-l border-slate-800 flex flex-col z-10 overflow-y-auto">
+      
+      <!-- SECTION 1: AI Prompt & Generation Panel -->
+      <div class="p-4 border-b border-slate-800">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-robot"></i> AI Panel Art Generator
+          </label>
+          <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Gemini 3.1 Flash</span>
+        </div>
+
+        <!-- Prompt Textarea -->
+        <div class="space-y-2">
+          <textarea id="ai-prompt-input" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-md p-2.5 text-xs text-slate-100 focus:ring-1 focus:ring-yellow-400 focus:outline-none placeholder-slate-500" placeholder="Describe the panel scene (e.g., A cybernetic detective holding a glowing golden Haven Key in a neon rain city)..."></textarea>
+
+          <!-- Style Preset Selector -->
+          <div>
+            <label class="text-[11px] font-semibold text-slate-400 block mb-1">Comic Art Style</label>
+            <select id="art-style-select" class="w-full bg-slate-950 border border-slate-700 rounded-md p-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-yellow-400">
+              <option value="Manga / Anime ink lineart, high contrast black and white shading">Manga / Anime Ink</option>
+              <option value="American Superhero Comic Book, bold ink outlines, dynamic action colors">Classic Superhero</option>
+              <option value="Cyberpunk Noir, neon glowing highlights, dark gritty city shadows">Cyberpunk Noir</option>
+              <option value="Dark Fantasy graphic novel, detailed watercolor and ink">Dark Fantasy</option>
+              <option value="Retro Vintage 1980s comic print, pop art halftone dots">80s Retro Halftone</option>
+              <option value="Cinematic Concept Art, dramatic lighting, detailed rendering">Cinematic Digital</option>
+            </select>
+          </div>
+
+          <!-- Generate Button -->
+          <button id="btn-generate-panel" class="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-950 font-bold rounded-md shadow text-xs transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Panel Art
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Text Bubble Inspector / Customizer -->
+      <div class="p-4 border-b border-slate-800">
+        <label class="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-3 flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders"></i> Active Overlay Styling
+        </label>
+        
+        <div id="overlay-inspector-empty" class="p-4 bg-slate-950/50 border border-dashed border-slate-800 rounded text-center text-xs text-slate-500">
+          Click on any speech bubble or text overlay on the canvas to edit properties.
+        </div>
+
+        <div id="overlay-inspector-controls" class="space-y-3 hidden">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Text Content</label>
+            <input type="text" id="inspector-text-input" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-yellow-400">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Font Style</label>
+              <select id="inspector-font-select" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                <option value="font-comic">Comic Sans / Classic</option>
+                <option value="font-sans">Clean Sans</option>
+                <option value="font-serif">Dramatic Serif</option>
+                <option value="font-mono">Tech Mono</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Tail Pointer</label>
+              <select id="inspector-tail-select" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200">
+                <option value="bottom">Bottom</option>
+                <option value="top">Top</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Background</label>
+              <input type="color" id="inspector-bg-color" class="w-full h-8 bg-slate-950 border border-slate-700 rounded cursor-pointer p-0.5">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Text Color</label>
+              <input type="color" id="inspector-text-color" class="w-full h-8 bg-slate-950 border border-slate-700 rounded cursor-pointer p-0.5">
+            </div>
+          </div>
+
+          <button id="btn-delete-overlay" class="w-full py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded text-xs transition flex items-center justify-center gap-1 mt-2">
+            <i class="fa-solid fa-trash-can"></i> Delete Selected Overlay
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Haven Key Story Settings & Global Setup -->
+      <div class="p-4 space-y-3">
+        <label class="text-xs font-bold text-slate-300 uppercase tracking-wider block flex items-center gap-1.5">
+          <i class="fa-solid fa-book"></i> Comic Title & Issue
+        </label>
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Main Header Title</label>
+          <input type="text" id="comic-header-input" value="HAVEN KEY CHRONICLES" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-100">
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT LOGIC -->
+  <script>
+    // GLOBAL STATE MANAGEMENT
+    const state = {
+      layout: '1x1', // '1x1', 'strip', '2x2', 'dynamic'
+      panels: [
+        {
+          id: 'panel-1',
+          title: 'Panel 1',
+          prompt: 'A sleek futuristic Haven Key glowing with golden ethereal light inside a cyber vault',
+          imageUrl: '',
+          isLoading: false
+        }
+      ],
+      activePanelId: 'panel-1',
+      overlays: [], // speech bubbles, action texts
+      selectedOverlayId: null,
+      zoomLevel: 100
+    };
+
+    // DOM ELEMENTS
+    const panelsGrid = document.getElementById('panels-grid');
+    const panelTreeList = document.getElementById('panel-tree-list');
+    const activePanelIndicator = document.getElementById('active-panel-indicator');
+    const aiPromptInput = document.getElementById('ai-prompt-input');
+    const btnGeneratePanel = document.getElementById('btn-generate-panel');
+    const artStyleSelect = document.getElementById('art-style-select');
+    const comicPage = document.getElementById('comic-page');
+    const comicHeaderInput = document.getElementById('comic-header-input');
+    const comicTitleDisplay = document.getElementById('comic-title-display');
+
+    // Overlay Inspector Elements
+    const overlayInspectorEmpty = document.getElementById('overlay-inspector-empty');
+    const overlayInspectorControls = document.getElementById('overlay-inspector-controls');
+    const inspectorTextInput = document.getElementById('inspector-text-input');
+    const inspectorFontSelect = document.getElementById('inspector-font-select');
+    const inspectorTailSelect = document.getElementById('inspector-tail-select');
+    const inspectorBgColor = document.getElementById('inspector-bg-color');
+    const inspectorTextColor = document.getElementById('inspector-text-color');
+    const btnDeleteOverlay = document.getElementById('btn-delete-overlay');
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      renderPanelTree();
+      renderPanelsGrid();
+      setupEventListeners();
+    });
+
+    // EVENT LISTENERS SETUP
+    function setupEventListeners() {
+      // Layout Switching
+      document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active', 'border-yellow-400'));
+          const target = e.currentTarget;
+          target.classList.add('active', 'border-yellow-400');
+          const layoutType = target.getAttribute('data-layout');
+          setLayoutPreset(layoutType);
+        });
+      });
+
+      // Add Panel
+      document.getElementById('btn-add-panel').addEventListener('click', () => {
+        const newId = `panel-${Date.now()}`;
+        state.panels.push({
+          id: newId,
+          title: `Panel ${state.panels.length + 1}`,
+          prompt: '',
+          imageUrl: '',
+          isLoading: false
+        });
+        setActivePanel(newId);
+        renderPanelTree();
+        renderPanelsGrid();
+      });
+
+      // AI Generation Trigger
+      btnGeneratePanel.addEventListener('click', generateCurrentPanelArt);
+
+      // Comic Title Sync
+      comicHeaderInput.addEventListener('input', (e) => {
+        comicTitleDisplay.textContent = e.target.value.toUpperCase() || 'HAVEN KEY CHRONICLES';
+      });
+
+      // Zoom Controls
+      document.getElementById('btn-zoom-in').addEventListener('click', () => adjustZoom(10));
+      document.getElementById('btn-zoom-out').addEventListener('click', () => adjustZoom(-10));
+      document.getElementById('btn-reset-zoom').addEventListener('click', () => {
+        state.zoomLevel = 100;
+        updateZoomDisplay();
+      });
+
+      // Add Overlay Buttons
+      document.getElementById('add-speech-bubble').addEventListener('click', () => addOverlay('speech'));
+      document.getElementById('add-thought-bubble').addEventListener('click', () => addOverlay('thought'));
+      document.getElementById('add-action-text').addEventListener('click', () => addOverlay('action'));
+
+      // Overlay Inspector Bindings
+      inspectorTextInput.addEventListener('input', (e) => updateSelectedOverlay({ text: e.target.value }));
+      inspectorFontSelect.addEventListener('change', (e) => updateSelectedOverlay({ font: e.target.value }));
+      inspectorTailSelect.addEventListener('change', (e) => updateSelectedOverlay({ tail: e.target.value }));
+      inspectorBgColor.addEventListener('input', (e) => updateSelectedOverlay({ bg: e.target.value }));
+      inspectorTextColor.addEventListener('input', (e) => updateSelectedOverlay({ textCol: e.target.value }));
+      btnDeleteOverlay.addEventListener('click', deleteSelectedOverlay);
+
+      // JSON Backup & Import
+      document.getElementById('btn-export-json').addEventListener('click', exportProjectJSON);
+      document.getElementById('btn-import-json').addEventListener('click', () => document.getElementById('input-import-file').click());
+      document.getElementById('input-import-file').addEventListener('change', importProjectJSON);
+
+      // High Res PNG Export
+      document.getElementById('btn-export-png').addEventListener('click', exportComicPagePNG);
+
+      // Sample Story Loader
+      document.getElementById('btn-load-template').addEventListener('click', loadSampleStory);
+    }
+
+    // LAYOUT PRESET MANAGER
+    function setLayoutPreset(type) {
+      state.layout = type;
+      if (type === '1x1') {
+        ensurePanelCount(1);
+      } else if (type === 'strip') {
+        ensurePanelCount(3);
+      } else if (type === '2x2') {
+        ensurePanelCount(4);
+      } else if (type === 'dynamic') {
+        ensurePanelCount(3);
+      }
+      renderPanelTree();
+      renderPanelsGrid();
+    }
+
+    function ensurePanelCount(count) {
+      while (state.panels.length < count) {
+        state.panels.push({
+          id: `panel-${Date.now()}-${state.panels.length}`,
+          title: `Panel ${state.panels.length + 1}`,
+          prompt: '',
+          imageUrl: '',
+          isLoading: false
+        });
+      }
+      if (!state.panels.find(p => p.id === state.activePanelId)) {
+        setActivePanel(state.panels[0].id);
+      }
+    }
+
+    // ACTIVE PANEL LOGIC
+    function setActivePanel(panelId) {
+      state.activePanelId = panelId;
+      const activePanel = state.panels.find(p => p.id === panelId);
+      if (activePanel) {
+        activePanelIndicator.textContent = activePanel.title;
+        aiPromptInput.value = activePanel.prompt || '';
+      }
+      renderPanelTree();
+      highlightActiveCanvasPanel();
+    }
+
+    // RENDER SIDEBAR PANEL TREE
+    function renderPanelTree() {
+      panelTreeList.innerHTML = '';
+      state.panels.forEach((panel, index) => {
+        const isActive = panel.id === state.activePanelId;
+        const div = document.createElement('div');
+        div.className = `p-2.5 rounded-md border text-xs flex items-center justify-between cursor-pointer transition ${
+          isActive
+            ? 'bg-slate-800 border-yellow-400 text-slate-100 font-semibold'
+            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+        }`;
+
+        div.innerHTML = `
+          <div class="flex items-center space-x-2 truncate">
+            <span class="w-5 h-5 rounded bg-slate-700/50 flex items-center justify-center text-[10px] text-slate-300 font-bold">${index + 1}</span>
+            <span class="truncate">${panel.title}</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            ${panel.imageUrl ? '<i class="fa-solid fa-image text-emerald-400 text-[11px]" title="Artwork Ready"></i>' : ''}
+            ${state.panels.length > 1 ? `
+              <button class="btn-del-panel p-1 text-slate-500 hover:text-red-400 transition" data-id="${panel.id}">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            ` : ''}
+          </div>
+        `;
+
+        div.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-del-panel')) {
+            deletePanel(panel.id);
+            return;
+          }
+          setActivePanel(panel.id);
+        });
+
+        panelTreeList.appendChild(div);
+      });
+    }
+
+    function deletePanel(id) {
+      if (state.panels.length <= 1) return;
+      state.panels = state.panels.filter(p => p.id !== id);
+      if (state.activePanelId === id) {
+        setActivePanel(state.panels[0].id);
+      }
+      renderPanelTree();
+      renderPanelsGrid();
+    }
+
+    // RENDER CANVAS GRID & PANELS
+    function renderPanelsGrid() {
+      panelsGrid.innerHTML = '';
+
+      // Grid CSS class depending on layout type
+      if (state.layout === '1x1') {
+        panelsGrid.className = 'flex-1 grid grid-cols-1 gap-4 relative';
+      } else if (state.layout === 'strip') {
+        panelsGrid.className = 'flex-1 grid grid-cols-1 grid-rows-3 gap-3 relative';
+      } else if (state.layout === '2x2') {
+        panelsGrid.className = 'flex-1 grid grid-cols-2 grid-rows-2 gap-3 relative';
+      } else if (state.layout === 'dynamic') {
+        panelsGrid.className = 'flex-1 grid grid-cols-2 grid-rows-2 gap-3 relative';
+      }
+
+      state.panels.forEach((panel, idx) => {
+        const panelEl = document.createElement('div');
+        panelEl.id = `canvas-${panel.id}`;
+
+        let dynamicStyle = '';
+        if (state.layout === 'dynamic' && idx === 0) {
+          dynamicStyle = 'col-span-2 row-span-1';
+        }
+
+        panelEl.className = `relative border-4 border-black bg-slate-100 overflow-hidden group flex flex-col items-center justify-center min-h-[200px] cursor-pointer transition ${dynamicStyle} ${
+          panel.id === state.activePanelId ? 'ring-4 ring-yellow-400 ring-offset-2' : ''
+        }`;
+
+        if (panel.isLoading) {
+          // Loading Skeleton State
+          panelEl.innerHTML = `
+            <div class="absolute inset-0 bg-slate-200 animate-pulse flex flex-col items-center justify-center p-4">
+              <i class="fa-solid fa-spinner fa-spin text-3xl text-yellow-500 mb-2"></i>
+              <span class="text-xs font-bold text-slate-600 font-comic">Generating Art via Gemini...</span>
+              <span class="text-[10px] text-slate-400 mt-1">Applying style preset</span>
+            </div>
+          `;
+        } else if (panel.imageUrl) {
+          // Generated Image
+          panelEl.innerHTML = `
+            <img src="${panel.imageUrl}" alt="${panel.title}" class="w-full h-full object-cover">
+            <div class="absolute bottom-2 left-2 bg-black/75 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold font-comic opacity-0 group-hover:opacity-100 transition">
+              ${panel.title}
+            </div>
+          `;
+        } else {
+          // Empty State Prompt Placeholder
+          panelEl.innerHTML = `
+            <div class="p-6 text-center text-slate-400 flex flex-col items-center">
+              <i class="fa-solid fa-wand-magic-sparkles text-2xl text-slate-300 mb-2"></i>
+              <span class="text-xs font-bold text-slate-600 uppercase font-comic mb-1">${panel.title}</span>
+              <p class="text-[11px] text-slate-400 max-w-[200px]">Click to select and enter an AI prompt in the sidebar</p>
+            </div>
+          `;
+        }
+
+        panelEl.addEventListener('click', () => {
+          setActivePanel(panel.id);
+        });
+
+        panelsGrid.appendChild(panelEl);
+      });
+
+      // Re-render overlays over the page
+      renderOverlays();
+    }
+
+    function highlightActiveCanvasPanel() {
+      state.panels.forEach(panel => {
+        const el = document.getElementById(`canvas-${panel.id}`);
+        if (el) {
+          if (panel.id === state.activePanelId) {
+            el.classList.add('ring-4', 'ring-yellow-400', 'ring-offset-2');
+          } else {
+            el.classList.remove('ring-4', 'ring-yellow-400', 'ring-offset-2');
+          }
+        }
+      });
+    }
+
+    // AI IMAGE GENERATION (INTEGRATED GEMINI API CALL)
+    async function generateCurrentPanelArt() {
+      const activePanel = state.panels.find(p => p.id === state.activePanelId);
+      if (!activePanel) return;
+
+      const userPrompt = aiPromptInput.value.trim();
+      if (!userPrompt) {
+        alert('Please enter a description prompt for the panel artwork.');
+        return;
+      }
+
+      // Save prompt to state
+      activePanel.prompt = userPrompt;
+      activePanel.isLoading = true;
+      btnGeneratePanel.disabled = true;
+      btnGeneratePanel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rendering...';
+      renderPanelsGrid();
+
+      const selectedStyle = artStyleSelect.value;
+      const fullPrompt = `Comic panel art illustration, ${selectedStyle}. Scene: ${userPrompt}. Detailed masterpiece, crisp linework, professional graphic novel framing.`;
+
+      try {
+        // Calling Gemini 3.1 Flash Image model directly
+        const apiKey = ""; // Runtime automatically provides API key
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+
+        const payload = {
+          contents: [{
+            parts: [{ text: fullPrompt }]
+          }],
+          generationConfig: {
+            responseModalities: ['IMAGE'],
+            imageConfig: { aspectRatio: "1:1" }
+          }
+        };
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        const base64Data = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+
+        if (base64Data) {
+          activePanel.imageUrl = `data:image/png;base64,${base64Data}`;
+        } else {
+          // Fallback Canvas procedural generated SVG artwork if API key quota exceeded
+          activePanel.imageUrl = createProceduralComicFallback(userPrompt, selectedStyle);
+        }
+      } catch (err) {
+        console.error('Gemini API Image Gen Error:', err);
+        // Generates an atmospheric fallback stylized SVG image card
+        activePanel.imageUrl = createProceduralComicFallback(userPrompt, selectedStyle);
+      } finally {
+        activePanel.isLoading = false;
+        btnGeneratePanel.disabled = false;
+        btnGeneratePanel.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Panel Art';
+        renderPanelTree();
+        renderPanelsGrid();
+      }
+    }
+
+    // PROCEDURAL FALLBACK ART GENERATOR (Using SVG Data URIs)
+    function createProceduralComicFallback(promptText, style) {
+      const colors = ['#0f172a', '#1e1b4b', '#311042', '#064e3b', '#450a0a'];
+      const bgHex = colors[Math.floor(Math.random() * colors.length)];
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+          <rect width="600" height="600" fill="${bgHex}"/>
+          <circle cx="300" cy="260" r="140" fill="#facc15" opacity="0.2"/>
+          <path d="M 150 450 Q 300 150 450 450 Z" fill="none" stroke="#facc15" stroke-width="8"/>
+          <path d="M 220 300 L 380 300 M 300 220 L 300 380" stroke="#ffffff" stroke-width="6" stroke-dasharray="10,10"/>
+          <text x="300" y="520" font-family="sans-serif" font-weight="bold" font-size="20" fill="#ffffff" text-anchor="middle">
+            HAVEN KEY ARTWORK
+          </text>
+          <text x="300" y="550" font-family="sans-serif" font-size="14" fill="#94a3b8" text-anchor="middle">
+            "${promptText.substring(0, 35)}..."
+          </text>
+        </svg>
+      `;
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    }
+
+    // OVERLAY CREATION & DRAG/DROP LOGIC
+    function addOverlay(type) {
+      const id = `overlay-${Date.now()}`;
+      let overlay = {
+        id,
+        type, // 'speech', 'thought', 'action'
+        text: type === 'action' ? 'BOOM!' : 'Enter dialogue text...',
+        x: 50 + (state.overlays.length * 15),
+        y: 80 + (state.overlays.length * 15),
+        font: 'font-comic',
+        tail: 'bottom',
+        bg: type === 'action' ? '#facc15' : '#ffffff',
+        textCol: type === 'action' ? '#000000' : '#000000'
+      };
+      state.overlays.push(overlay);
+      renderOverlays();
+      selectOverlay(id);
+    }
+
+    function renderOverlays() {
+      // Remove existing overlay elements
+      document.querySelectorAll('.comic-overlay-element').forEach(el => el.remove());
+
+      state.overlays.forEach(overlay => {
+        const el = document.createElement('div');
+        el.id = overlay.id;
+        el.className = `comic-overlay-element absolute cursor-move z-30 touch-none select-none ${
+          state.selectedOverlayId === overlay.id ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
+        }`;
+        el.style.left = `${overlay.x}px`;
+        el.style.top = `${overlay.y}px`;
+
+        if (overlay.type === 'action') {
+          // Action sound effect text
+          el.innerHTML = `
+            <div class="action-effect ${overlay.font} font-black text-3xl uppercase tracking-wider px-3 py-1 text-yellow-400" style="color:${overlay.textCol};">
+              ${overlay.text}
+            </div>
+          `;
+        } else {
+          // Speech / Thought Bubble
+          const tailClass = overlay.tail !== 'none' ? `bubble-tail-${overlay.tail}` : '';
+          const shapeClass = overlay.type === 'thought' ? 'rounded-3xl border-dashed' : 'rounded-2xl';
+          
+          el.innerHTML = `
+            <div class="relative ${shapeClass} ${tailClass} p-3 border-2 border-black max-w-[220px] shadow-md transition" 
+                 style="background-color: ${overlay.bg}; color: ${overlay.textCol}; --bubble-bg: ${overlay.bg};">
+              <p class="${overlay.font} font-bold text-xs leading-snug text-center break-words outline-none" contenteditable="false">
+                ${overlay.text}
+              </p>
+            </div>
+          `;
+        }
+
+        // Enable Dragging
+        makeDraggable(el, overlay);
+
+        // Click Selection
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectOverlay(overlay.id);
+        });
+
+        // Double Click to Edit Text directly
+        el.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          const p = el.querySelector('p') || el.querySelector('div');
+          if (p) {
+            p.contentEditable = "true";
+            p.focus();
+            p.addEventListener('blur', () => {
+              p.contentEditable = "false";
+              updateSelectedOverlay({ text: p.innerText });
+            }, { once: true });
+          }
+        });
+
+        panelsGrid.appendChild(el);
+      });
+    }
+
+    function makeDraggable(el, overlayObj) {
+      let isDragging = false;
+      let startX, startY, initialLeft, initialTop;
+
+      el.addEventListener('mousedown', (e) => {
+        if (e.target.isContentEditable) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = overlayObj.x;
+        initialTop = overlayObj.y;
+
+        const onMouseMove = (me) => {
+          if (!isDragging) return;
+          const dx = (me.clientX - startX) / (state.zoomLevel / 100);
+          const dy = (me.clientY - startY) / (state.zoomLevel / 100);
+          overlayObj.x = Math.max(0, initialLeft + dx);
+          overlayObj.y = Math.max(0, initialTop + dy);
+          el.style.left = `${overlayObj.x}px`;
+          el.style.top = `${overlayObj.y}px`;
+        };
+
+        const onMouseUp = () => {
+          isDragging = false;
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    // OVERLAY INSPECTOR SELECTION
+    function selectOverlay(id) {
+      state.selectedOverlayId = id;
+      const overlay = state.overlays.find(o => o.id === id);
+
+      if (overlay) {
+        overlayInspectorEmpty.classList.add('hidden');
+        overlayInspectorControls.classList.remove('hidden');
+
+        inspectorTextInput.value = overlay.text;
+        inspectorFontSelect.value = overlay.font;
+        inspectorTailSelect.value = overlay.tail || 'bottom';
+        inspectorBgColor.value = overlay.bg || '#ffffff';
+        inspectorTextColor.value = overlay.textCol || '#000000';
+      } else {
+        overlayInspectorEmpty.classList.remove('hidden');
+        overlayInspectorControls.classList.add('hidden');
+      }
+
+      renderOverlays();
+    }
+
+    function updateSelectedOverlay(changes) {
+      if (!state.selectedOverlayId) return;
+      const overlay = state.overlays.find(o => o.id === state.selectedOverlayId);
+      if (overlay) {
+        Object.assign(overlay, changes);
+        renderOverlays();
+      }
+    }
+
+    function deleteSelectedOverlay() {
+      if (!state.selectedOverlayId) return;
+      state.overlays = state.overlays.filter(o => o.id !== state.selectedOverlayId);
+      selectOverlay(null);
+    }
+
+    // ZOOM CONTROLLER
+    function adjustZoom(delta) {
+      state.zoomLevel = Math.min(150, Math.max(50, state.zoomLevel + delta));
+      updateZoomDisplay();
+    }
+
+    function updateZoomDisplay() {
+      document.getElementById('zoom-level').textContent = `${state.zoomLevel}%`;
+      comicPage.style.transform = `scale(${state.zoomLevel / 100})`;
+    }
+
+    // SAMPLE STORY TEMPLATE PRESET
+    function loadSampleStory() {
+      state.layout = 'dynamic';
+      document.querySelectorAll('.layout-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-layout') === 'dynamic');
+        b.classList.toggle('border-yellow-400', b.getAttribute('data-layout') === 'dynamic');
+      });
+
+      state.panels = [
+        {
+          id: 'panel-sample-1',
+          title: 'Panel 1',
+          prompt: 'A sleek cybernetic hero discovering the golden Haven Key in a glowing pedestal inside a dark neon atmospheric vault',
+          imageUrl: createProceduralComicFallback('The Haven Key Awakens in Neo-City', 'Cyberpunk Noir'),
+          isLoading: false
+        },
+        {
+          id: 'panel-sample-2',
+          title: 'Panel 2',
+          prompt: 'Close up shock expression of cyber detective with glowing blue eye reflection',
+          imageUrl: createProceduralComicFallback('A revelation unearthed...', 'Manga Ink'),
+          isLoading: false
+        },
+        {
+          id: 'panel-sample-3',
+          title: 'Panel 3',
+          prompt: 'An explosion of golden energy beam unlocking a futuristic portal',
+          imageUrl: createProceduralComicFallback('The Portal Opens!', 'Superhero'),
+          isLoading: false
+        }
+      ];
+
+      state.overlays = [
+        {
+          id: 'ov-1',
+          type: 'speech',
+          text: 'At last... The Haven Key of the Ancients is real!',
+          x: 40,
+          y: 40,
+          font: 'font-comic',
+          tail: 'bottom',
+          bg: '#ffffff',
+          textCol: '#000000'
+        },
+        {
+          id: 'ov-2',
+          type: 'action',
+          text: 'SHWWWOOOOSH!',
+          x: 420,
+          y: 350,
+          font: 'font-comic',
+          tail: 'none',
+          bg: '#facc15',
+          textCol: '#000000'
+        }
+      ];
+
+      setActivePanel('panel-sample-1');
+      renderPanelTree();
+      renderPanelsGrid();
+    }
+
+    // PROJECT BACKUP & RESTORE (JSON)
+    function exportProjectJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `haven_key_comic_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importProjectJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importedState = JSON.parse(event.target.result);
+          if (importedState.panels && importedState.layout) {
+            state.layout = importedState.layout;
+            state.panels = importedState.panels;
+            state.overlays = importedState.overlays || [];
+            setActivePanel(state.panels[0].id);
+            renderPanelTree();
+            renderPanelsGrid();
+          }
+        } catch (err) {
+          alert("Invalid project file format.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // HIGH RES PNG EXPORT VIA HTML2CANVAS
+    async function exportComicPagePNG() {
+      const btn = document.getElementById('btn-export-png');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rendering Image...';
+
+      // Reset zoom temporarily for crisp pixel ratio capture
+      const currentZoom = state.zoomLevel;
+      comicPage.style.transform = 'scale(1)';
+
+      try {
+        const canvas = await html2canvas(comicPage, {
+          scale: 2, // High resolution double DPI
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+
+        const link = document.createElement('a');
+        link.download = `haven_key_comic_page_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        console.error('Export Error:', err);
+        alert('Failed to generate high-resolution PNG.');
+      } finally {
+        comicPage.style.transform = `scale(${currentZoom / 100})`;
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+  </script>
+</body>
+</html>
